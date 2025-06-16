@@ -1,29 +1,42 @@
-// src/App.jsx
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function App() {
+  const topics = [
+    "자료구조",
+    "운영체제",
+    "네트워크",
+    "데이터베이스",
+    "CS 종합",
+    "인성면접",
+  ];
+
+  const [selectedTopic, setSelectedTopic] = useState(topics[0]);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]); // { role, content } 리스트
+  const [messages, setMessages] = useState([]); // { role, content }
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef(null);
 
   const API = "http://127.0.0.1:5000";
 
-  // 첫 질문 자동 생성
+  // selectedTopic이 바뀔 때마다 첫 질문 생성
   useEffect(() => {
     (async () => {
-      const res = await fetch(`${API}/api/generate-question`);
-      const { question } = await res.json();
-      setMessages([{ role: "agent", content: question }]);
+      setLoading(true);
+      const res = await fetch(`${API}/api/generate-question`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: selectedTopic }),
+      });
+      const data = await res.json();
+      setMessages([{ role: "agent", content: data.question }]);
+      setLoading(false);
     })();
-  }, []);
+  }, [selectedTopic]);
 
   const sendMessage = async () => {
     if (!message.trim()) return;
-    const userMsg = { role: "user", content: message };
-    setMessages((m) => [...m, userMsg]);
+    setMessages((m) => [...m, { role: "user", content: message }]);
     setMessage("");
     setLoading(true);
 
@@ -35,20 +48,33 @@ export default function App() {
     const { reply } = await res.json();
     setMessages((m) => [...m, { role: "agent", content: reply }]);
     setLoading(false);
-
-    // 맨 아래로 스크롤
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  // ** 마크다운 볼드(**)만 제거해 주는 헬퍼
-  const sanitize = (text) => text.replace(/\*\*/g, "");
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 font-sans">
       <header className="bg-blue-600 text-white py-4 text-center font-semibold text-xl">
-        CS 면접 AI Agent
+        CS·인성 면접 AI Agent
       </header>
-      <main className="flex-1 overflow-auto p-4 space-y-4">
+
+      {/* 토픽 선택 */}
+      <nav className="flex flex-wrap gap-2 p-4 bg-white">
+        {topics.map((t) => (
+          <button
+            key={t}
+            onClick={() => setSelectedTopic(t)}
+            className={`px-4 py-2 rounded-full border ${
+              selectedTopic === t
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-700 border-gray-300"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </nav>
+
+      <main className="flex-1 overflow-auto p-4 flex flex-col space-y-4">
         {messages.map((m, i) => (
           <div
             key={i}
@@ -58,14 +84,13 @@ export default function App() {
                 : "bg-blue-100 self-end text-right"
             }`}
           >
-            <p className="whitespace-pre-wrap">
-              {sanitize(m.content)}
-            </p>
+            <p className="whitespace-pre-wrap">{m.content}</p>
           </div>
         ))}
         <div ref={chatEndRef} />
       </main>
-      <footer className="p-4 bg-white flex">
+
+      <footer className="p-4 bg-white flex gap-2">
         <input
           className="flex-1 border rounded-l px-3 py-2 focus:outline-none"
           value={message}
