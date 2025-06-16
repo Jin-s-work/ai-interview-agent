@@ -9,3 +9,6 @@ venv/
 
 # Others
 .DS_Store
+
+# .gitignore
+.env

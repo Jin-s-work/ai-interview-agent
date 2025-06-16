@@ -1,117 +1,86 @@
-import { useState } from "react";
+// src/App.jsx
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function App() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]); // { role, content } 리스트
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const chatEndRef = useRef(null);
 
-  const API_BASE = "http://127.0.0.1:5000";
+  const API = "http://127.0.0.1:5000";
 
-  // CS 면접 질문 생성
-  const generateQuestion = async () => {
-    setError("");
-    setAnswer("");
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE}/api/generate-question`);
-      if (!res.ok) {
-        const payload = await res.json();
-        throw new Error(payload.error || res.statusText);
-      }
+  // 첫 질문 자동 생성
+  useEffect(() => {
+    (async () => {
+      const res = await fetch(`${API}/api/generate-question`);
       const { question } = await res.json();
-      setQuestion(question);
-    } catch (err) {
-      console.error(err);
-      setError("질문 생성 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
+      setMessages([{ role: "agent", content: question }]);
+    })();
+  }, []);
+
+  const sendMessage = async () => {
+    if (!message.trim()) return;
+    const userMsg = { role: "user", content: message };
+    setMessages((m) => [...m, userMsg]);
+    setMessage("");
+    setLoading(true);
+
+    const res = await fetch(`${API}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const { reply } = await res.json();
+    setMessages((m) => [...m, { role: "agent", content: reply }]);
+    setLoading(false);
+
+    // 맨 아래로 스크롤
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 생성된 질문에 답변 요청
-  const getAnswer = async () => {
-    setError("");
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_BASE}/api/answer-question`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
-      });
-      if (!res.ok) {
-        const payload = await res.json();
-        throw new Error(payload.error || res.statusText);
-      }
-      const { answer } = await res.json();
-      setAnswer(answer);
-    } catch (err) {
-      console.error(err);
-      setError("답변 요청 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ** 마크다운 볼드(**)만 제거해 주는 헬퍼
+  const sanitize = (text) => text.replace(/\*\*/g, "");
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 space-y-6">
-        <h1 className="text-3xl font-bold text-center text-gray-800">
-          CS 면접 도우미
-        </h1>
-
-        {error && (
-          <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded">
-            ⚠️ {error}
+    <div className="flex flex-col h-screen bg-gray-100 font-sans">
+      <header className="bg-blue-600 text-white py-4 text-center font-semibold text-xl">
+        CS 면접 AI Agent
+      </header>
+      <main className="flex-1 overflow-auto p-4 space-y-4">
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={`max-w-lg p-4 rounded ${
+              m.role === "agent"
+                ? "bg-gray-200 self-start text-left"
+                : "bg-blue-100 self-end text-right"
+            }`}
+          >
+            <p className="whitespace-pre-wrap">
+              {sanitize(m.content)}
+            </p>
           </div>
-        )}
-
-        <div className="flex flex-col space-y-4">
-          <Button
-            onClick={generateQuestion}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {loading ? "질문 생성 중..." : "면접 질문 자동 생성"}
-          </Button>
-
-          {question && (
-            <Card>
-              <CardContent>
-                <h2 className="text-lg font-semibold text-gray-700">
-                  생성된 질문
-                </h2>
-                <p className="mt-2 text-gray-800 whitespace-pre-wrap">
-                  {question}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <Button
-            onClick={getAnswer}
-            disabled={loading || !question}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {loading ? "답변 생성 중..." : "Gemini에게 답변 요청"}
-          </Button>
-
-          {answer && (
-            <Card className="bg-green-50 border-green-200">
-              <CardContent>
-                <h2 className="text-lg font-semibold text-gray-700">
-                  모범 답안
-                </h2>
-                <p className="mt-2 text-gray-800 whitespace-pre-wrap">
-                  {answer}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+        ))}
+        <div ref={chatEndRef} />
+      </main>
+      <footer className="p-4 bg-white flex">
+        <input
+          className="flex-1 border rounded-l px-3 py-2 focus:outline-none"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="답변 또는 다음 질문 요청"
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
+        <Button
+          onClick={sendMessage}
+          disabled={loading || !message.trim()}
+          className="rounded-l-none bg-green-600 hover:bg-green-700"
+        >
+          {loading ? "⏳" : "전송"}
+        </Button>
+      </footer>
     </div>
   );
 }
