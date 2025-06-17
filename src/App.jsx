@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 export default function App() {
   const topics = [
     "자료구조",
+    "알고리즘",
     "운영체제",
     "네트워크",
     "데이터베이스",
+    "AI 지식",
+    "데이터 사이언스",
     "CS 종합",
     "인성면접",
   ];
