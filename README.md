@@ -3,14 +3,14 @@
 AI가 전산학 면접 질문을 생성하고, 이에 대해 모범 답안을 제시하는 대화형 CS 면접 도우미입니다.  
 Google Gemini API 기반으로 동작하며, React + Flask로 개발되었습니다.
 
+<img width="700" alt="스크린샷 2025-06-17 오후 4 15 09" src="https://github.com/user-attachments/assets/66652f26-cc56-4059-ad35-7d82c0356d3e" />
 
-<img width="700" alt="스크린샷 2025-06-16 오후 5 31 08" src="https://github.com/user-attachments/assets/ef39f74e-4082-440c-a520-e7583b27cf29" />
 
 ---
 
 ## 🧠 주요 기능
 
-- 전산학(CS) 기반 면접 질문 자동 생성
+- 컴퓨터공학(CS) 기반 면접 질문 자동 생성
 - Gemini AI를 통한 자연스러운 모범 답변 생성
 - 사용자의 답변 전송 및 에이전트와의 대화형 인터페이스
 - 질문과 답변을 좌우 정렬하여 보기 좋게 출력
