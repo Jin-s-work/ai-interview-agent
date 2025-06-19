@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export default function App() {
   const topics = [
     "자료구조","운영체제","네트워크","데이터베이스",
-    "AI","데이터","알고리즘","CS 종합","인성면접",
+    "AI","데이터 사이언스","알고리즘","CS 종합","인성면접",
   ];
 
   const [selectedTopic, setSelectedTopic] = useState(topics[0]);
@@ -17,7 +17,7 @@ export default function App() {
   const scrollToBottom = () =>
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
-  // 첫 질문
+  // 첫 질문 생성
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -40,14 +40,11 @@ export default function App() {
     })();
   }, [selectedTopic]);
 
-  // 답변 전송 → feedback, model_answer, next_question
+  // 답변 전송 → 피드백 + 다음 질문
   const sendMessage = async () => {
     if (!message.trim()) return;
 
-    const updated = [
-      ...messages,
-      { role: "user",    type: "answer",       content: message },
-    ];
+    const updated = [...messages, { role: "user", type: "answer", content: message }];
     setMessages(updated);
     setMessage("");
     setLoading(true);
@@ -58,13 +55,12 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       });
-      const { feedback, model_answer, next_question } = await res.json();
+      const { feedback, next_question } = await res.json();
 
       setMessages([
         ...updated,
-        { role: "agent", type: "feedback",      content: feedback     },
-        { role: "agent", type: "model_answer",  content: model_answer },
-        { role: "agent", type: "question",      content: next_question},
+        { role: "agent", type: "feedback", content: feedback },
+        { role: "agent", type: "question", content: next_question },
       ]);
       scrollToBottom();
     } catch (err) {
@@ -111,10 +107,7 @@ export default function App() {
           } else if (m.type === "feedback") {
             bg = "bg-yellow-50 text-gray-900";
             border = "border border-yellow-200";
-          } else if (m.type === "model_answer") {
-            bg = "bg-green-50 text-gray-900";
-            border = "border border-green-200";
-          } else /* question */ {
+          } else {
             bg = "bg-white text-gray-900";
             border = "border border-gray-300";
           }
